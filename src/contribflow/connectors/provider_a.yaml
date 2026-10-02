@@ -1,0 +1,16 @@
+id: provider_a
+format: csv
+date_format: "%Y-%m-%d"
+amount_style: plain
+
+# canonical field: column header in the file
+columns:
+  employer_id: employer_id
+  employee_id: employee_id
+  pay_period_start: pay_period_start
+  pay_period_end: pay_period_end
+  pay_date: pay_date
+  gross_pay: gross_pay
+  pretax_deferral: pretax_deferral
+  roth_deferral: roth_deferral
+  employer_match: employer_match

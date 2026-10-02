@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Terraform: local state holds generated passwords; the provider lock file is committed.
+.terraform/
+.helm/
+# kubeconfig with cluster credentials, written by the kind provider
+deploy/terraform/local/*-config
+*.tfstate
+*.tfstate.*
+crash.log

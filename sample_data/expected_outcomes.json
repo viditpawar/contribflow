@@ -1,0 +1,189 @@
+{
+  "seed": 42,
+  "census": "census.csv",
+  "files": [
+    {
+      "file": "provider_a_2026-01-09.csv",
+      "connector": "provider_a",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": [
+        {
+          "row": 16,
+          "employee_id": "EMP000015",
+          "reasons": [
+            "MALFORMED_FIELD"
+          ]
+        },
+        {
+          "row": 19,
+          "employee_id": "EMP000018",
+          "reasons": [
+            "ELECTION_MISMATCH"
+          ]
+        },
+        {
+          "row": 24,
+          "employee_id": "EMP000023",
+          "reasons": [
+            "ELECTION_MISMATCH",
+            "MALFORMED_FIELD"
+          ]
+        },
+        {
+          "row": 25,
+          "employee_id": "EMP900001",
+          "reasons": [
+            "EMPLOYEE_NOT_IN_CENSUS"
+          ]
+        },
+        {
+          "row": 34,
+          "employee_id": "EMP000033",
+          "reasons": [
+            "MISSING_FIELD"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "provider_b_2026-01-09.csv",
+      "connector": "provider_b",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": [
+        {
+          "row": 14,
+          "employee_id": "EMP000063",
+          "reasons": [
+            "ELECTION_MISMATCH"
+          ]
+        },
+        {
+          "row": 37,
+          "employee_id": "EMP000086",
+          "reasons": [
+            "MALFORMED_FIELD"
+          ]
+        },
+        {
+          "row": 47,
+          "employee_id": "EMP900002",
+          "reasons": [
+            "EMPLOYEE_NOT_IN_CENSUS"
+          ]
+        },
+        {
+          "row": 50,
+          "employee_id": "EMP000099",
+          "reasons": [
+            "MISSING_FIELD"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "provider_c_2026-01-09.dat",
+      "connector": "provider_c",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": [
+        {
+          "row": 12,
+          "employee_id": "EMP000111",
+          "reasons": [
+            "MISSING_FIELD"
+          ]
+        },
+        {
+          "row": 22,
+          "employee_id": "EMP000121",
+          "reasons": [
+            "ELECTION_MISMATCH"
+          ]
+        },
+        {
+          "row": 39,
+          "employee_id": "EMP900003",
+          "reasons": [
+            "EMPLOYEE_NOT_IN_CENSUS"
+          ]
+        },
+        {
+          "row": 51,
+          "employee_id": "EMP000150",
+          "reasons": [
+            "MALFORMED_FIELD"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "provider_a_2026-01-23.csv",
+      "connector": "provider_a",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": []
+    },
+    {
+      "file": "provider_b_2026-01-23.csv",
+      "connector": "provider_b",
+      "outcome": "processed",
+      "record_count": 51,
+      "rejections": [
+        {
+          "row": 52,
+          "employee_id": "EMP000064",
+          "reasons": [
+            "DUPLICATE_PAY_PERIOD"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "provider_c_2026-01-23_bad_trailer.dat",
+      "connector": "provider_c",
+      "outcome": "rejected",
+      "record_count": 50,
+      "file_reasons": [
+        "TRAILER_TOTAL_MISMATCH"
+      ]
+    },
+    {
+      "file": "provider_c_2026-01-23.dat",
+      "connector": "provider_c",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": []
+    },
+    {
+      "file": "provider_a_2026-02-06.csv",
+      "connector": "provider_a",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": [
+        {
+          "row": 2,
+          "employee_id": "EMP000001",
+          "reasons": [
+            "OVER_ANNUAL_LIMIT"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "provider_b_2026-02-06.csv",
+      "connector": "provider_b",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": []
+    },
+    {
+      "file": "provider_c_2026-02-06.dat",
+      "connector": "provider_c",
+      "outcome": "processed",
+      "record_count": 50,
+      "rejections": []
+    }
+  ]
+}

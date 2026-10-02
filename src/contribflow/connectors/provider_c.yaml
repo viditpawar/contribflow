@@ -1,0 +1,25 @@
+id: provider_c
+format: fixed_width
+date_format: "%Y%m%d"
+amount_style: implied_cents
+
+header_record_type: H
+detail_record_type: D
+trailer_record_type: T
+
+# canonical field: [start, end) character positions, as in line[start:end]
+# Position 0 holds the record type.
+fields:
+  employer_id: [1, 7]
+  employee_id: [7, 16]
+  pay_period_start: [16, 24]
+  pay_period_end: [24, 32]
+  pay_date: [32, 40]
+  gross_pay: [40, 50]
+  pretax_deferral: [50, 60]
+  roth_deferral: [60, 70]
+  employer_match: [70, 80]
+
+trailer_fields:
+  record_count: [1, 9]
+  deferral_total: [9, 21]
