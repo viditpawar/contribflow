@@ -1,0 +1,26 @@
+# Local development: Postgres plus the API. Credentials are for local use only.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: contribflow
+      POSTGRES_PASSWORD: contribflow
+      POSTGRES_DB: contribflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./deploy/compose/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U contribflow"]
+      interval: 2s
+      retries: 15
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://contribflow:contribflow@db:5432/contribflow
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
