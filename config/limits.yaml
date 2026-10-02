@@ -1,0 +1,16 @@
+# Annual elective deferral limits by plan year (D15). Pretax and Roth deferrals
+# both count toward the limit. Amounts are strings so they load as exact Decimals.
+# Age is the age reached by December 31 of the plan year. An employee aged
+# enhanced_catch_up_min_age to enhanced_catch_up_max_age (inclusive) gets the
+# enhanced catch up instead of the regular one; from catch_up_age otherwise (D35).
+plan_years:
+  2026:
+    deferral_limit: "24500.00"
+    catch_up_limit: "8000.00"
+    catch_up_age: 50
+    enhanced_catch_up_limit: "11250.00"
+    enhanced_catch_up_min_age: 60
+    enhanced_catch_up_max_age: 63
+
+# Largest allowed difference between a deduction and gross pay times the election.
+election_tolerance: "0.01"
