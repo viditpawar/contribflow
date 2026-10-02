@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contribflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+  annotations:
+    # Accepted Checkov findings, each with its reason (D32).
+    checkov.io/skip1: CKV_K8S_15=Image is loaded into kind, so it cannot be pulled with Always
+    checkov.io/skip2: CKV_K8S_43=Local image tags change every build, a digest adds nothing locally
+    checkov.io/skip3: CKV_K8S_35=DATABASE_URL is built from the Secret by Kubernetes env expansion
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "contribflow.labels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+      annotations:
+        # Restart pods when the limits config changes.
+        checksum/limits: {{ include (print $.Template.BasePath "/configmap-limits.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Wait for Postgres instead of crash looping on startup.
+        - name: wait-for-postgres
+          image: {{ .Values.postgres.image }}
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "until pg_isready -h {{ include "contribflow.dbHost" . }} -U {{ .Values.postgres.user }}; do sleep 2; done"]
+          securityContext:
+            {{- include "contribflow.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 100m, memory: 64Mi }
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-postgres
+                  key: password
+            # $(POSTGRES_PASSWORD) is expanded by Kubernetes from the variable above.
+            - name: DATABASE_URL
+              value: "postgresql://{{ .Values.postgres.user }}:$(POSTGRES_PASSWORD)@{{ include "contribflow.dbHost" . }}:5432/{{ .Values.postgres.database }}"
+            - name: CONTRIBFLOW_LIMITS
+              value: /app/config/limits.yaml
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          # Liveness must not depend on the database, or a database outage restarts the API.
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- include "contribflow.containerSecurity" . | nindent 12 }}
+          volumeMounts:
+            - name: limits
+              mountPath: /app/config
+              readOnly: true
+            # Large uploads are spooled to /tmp; the root filesystem is read only.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: limits
+          configMap:
+            name: {{ .Release.Name }}-limits
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,110 @@
+# A single Postgres instance using the official image (D19).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "contribflow.dbHost" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contribflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "contribflow.dbHost" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contribflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+  annotations:
+    # Accepted Checkov findings, each with its reason (D32).
+    checkov.io/skip1: CKV_K8S_15=Image is preloaded into kind for offline use, so it cannot be pulled with Always
+    checkov.io/skip2: CKV_K8S_43=Tag is pinned to a major version; a digest is a production hardening step
+    checkov.io/skip3: CKV_K8S_40=uid 70 is the postgres user built into the Alpine image
+spec:
+  serviceName: {{ include "contribflow.dbHost" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "contribflow.labels" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        # uid 70 is the postgres user in the Alpine image.
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.database }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user }}
+            # Read from a mounted file rather than an env var (Checkov CKV_K8S_35).
+            - name: POSTGRES_PASSWORD_FILE
+              value: /run/secrets/postgres/password
+            # A subdirectory, because the volume root contains lost+found on some storage.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "{{ .Values.postgres.user }}"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "{{ .Values.postgres.user }}"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
+          securityContext:
+            {{- include "contribflow.containerSecurity" . | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            # Writable paths Postgres needs with a read only root filesystem.
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+            - name: password
+              mountPath: /run/secrets/postgres
+              readOnly: true
+      volumes:
+        - name: password
+          secret:
+            secretName: {{ .Release.Name }}-postgres
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.postgres.storage }}

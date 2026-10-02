@@ -1,0 +1,123 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: lint and test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: contribflow
+          POSTGRES_PASSWORD: contribflow
+          POSTGRES_DB: contribflow_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U contribflow"
+          --health-interval 2s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgresql://contribflow:contribflow@localhost:5432/contribflow_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+
+      # --locked fails if uv.lock is out of date with pyproject.toml
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest
+
+      - name: Committed sample data matches the generator
+        run: |
+          uv run python generator/generate.py --seed 42 --out sample_data
+          git diff --exit-code sample_data
+
+  iac:
+    name: helm, terraform and checkov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+      - uses: hashicorp/setup-terraform@v4
+      - uses: astral-sh/setup-uv@v10
+
+      - run: helm lint deploy/helm/contribflow --set postgres.password=ci
+      - name: Render the chart for scanning
+        run: |
+          mkdir rendered
+          helm template contribflow deploy/helm/contribflow -n contribflow \
+            --set postgres.password=ci > rendered/contribflow.yaml
+
+      - run: terraform fmt -check -recursive deploy/terraform
+      - run: terraform -chdir=deploy/terraform/local init -backend=false -input=false
+      - run: terraform -chdir=deploy/terraform/local validate
+
+      # Accepted findings are skipped in the manifests themselves, each with a reason.
+      - run: uvx checkov --compact --quiet -d rendered --framework kubernetes
+      - run: uvx checkov --compact --quiet -f Dockerfile --framework dockerfile
+      - run: uvx checkov --compact --quiet -d deploy/terraform --framework terraform
+
+      - name: Trivy misconfiguration scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+  e2e:
+    name: image scan and kind smoke test
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+
+      - run: docker build -t contribflow:ci .
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: contribflow:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: contribflow
+
+      - run: kind load docker-image contribflow:ci --name contribflow
+
+      # The monitoring stack is too heavy for a smoke test, so its CRD based pieces are off.
+      - name: Install the chart
+        run: |
+          helm install contribflow deploy/helm/contribflow \
+            --namespace contribflow --create-namespace \
+            --set image.tag=ci \
+            --set postgres.password=ci-only \
+            --set serviceMonitor.enabled=false \
+            --set grafanaDashboard.enabled=false \
+            --wait --timeout 5m
+
+      - name: Load sample data and check every outcome
+        run: |
+          kubectl -n contribflow port-forward svc/contribflow-api 8080:8000 &
+          for i in $(seq 1 30); do curl -sf localhost:8080/healthz && break; sleep 1; done
+          uv run python scripts/load_sample_data.py --api http://localhost:8080
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl get pods -A
+          kubectl -n contribflow describe pods
+          kubectl -n contribflow logs -l app.kubernetes.io/instance=contribflow --all-containers --tail=100

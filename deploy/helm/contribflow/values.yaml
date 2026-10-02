@@ -1,0 +1,44 @@
+image:
+  repository: contribflow
+  tag: dev
+  # Images are loaded straight into kind, so never pull from a registry (D17).
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  # Mapped to localhost:8080 by the kind cluster config.
+  nodePort: 30080
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+# Mounted at /app/config/limits.yaml (D15, D28).
+limits:
+  plan_years:
+    2026:
+      deferral_limit: "24500.00"
+      catch_up_limit: "8000.00"
+      catch_up_age: 50
+      enhanced_catch_up_limit: "11250.00"
+      enhanced_catch_up_min_age: 60
+      enhanced_catch_up_max_age: 63
+  election_tolerance: "0.01"
+
+postgres:
+  image: postgres:17-alpine
+  database: contribflow
+  user: contribflow
+  # Required. Terraform passes a generated password.
+  password: ""
+  storage: 1Gi
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+serviceMonitor:
+  enabled: true
+
+grafanaDashboard:
+  enabled: true

@@ -1,0 +1,19 @@
+{{- if .Values.serviceMonitor.enabled }}
+# Tells the Prometheus operator to scrape /metrics on the API service (D18).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "contribflow.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  endpoints:
+    - port: http
+      path: /metrics/
+      interval: 15s
+{{- end }}
