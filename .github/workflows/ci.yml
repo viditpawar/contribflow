@@ -117,6 +117,8 @@ jobs:
 
       - name: Diagnostics
         if: failure()
+        # Best effort: the cluster may not exist if an earlier step failed.
+        continue-on-error: true
         run: |
           kubectl get pods -A
           kubectl -n contribflow describe pods

@@ -306,3 +306,11 @@ Actions are pinned to major version tags.
 **Reasoning:** A 7B class model needs about 5 GB of memory, which the laptop cluster cannot spare next to the monitoring stack. Keeping the model optional means the core pipeline never depends on it.
 
 **Alternatives considered:** Running Ollama in kind (exceeds the memory budget). A hosted model API (rejected in D21 for cost and data exposure).
+
+## D44. Apply OS security updates when building the image
+
+**Decision:** The runtime stage of the Dockerfile runs `apt-get update && apt-get upgrade` before anything else, then deletes the package lists. The CI Diagnostics step is marked best effort, so it cannot add a second failure when the cluster was never created.
+
+**Reasoning:** The first CI run failed the Trivy gate on a HIGH vulnerability in a Debian library whose fix had been published after the `python:3.12-slim` image was built. Base images lag behind security fixes by days or weeks, so this will recur. Upgrading at build time picks up fixes as soon as Debian ships them, and the Trivy gate still fails the build if a fix is not yet available.
+
+**Alternatives considered:** Waiting for a refreshed base image (the build stays red for an unknown time). Ignoring the finding in a `.trivyignore` file (hides a vulnerability that has a fix). Switching to a distroless or Alpine base (D31 explains why not).

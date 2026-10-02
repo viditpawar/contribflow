@@ -14,6 +14,10 @@ RUN uv sync --locked --no-dev --no-editable
 
 # Runtime stage: no uv, no source tree, non root user.
 FROM python:3.12-slim
+# Apply Debian security fixes published after the base image was built (D44).
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
