@@ -225,3 +225,6 @@ deploy/terraform/local/*-config
 *.tfstate
 *.tfstate.*
 crash.log
+
+# Created by the README demo
+reexport.csv
