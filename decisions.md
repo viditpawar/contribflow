@@ -307,6 +307,14 @@ Actions are pinned to major version tags.
 
 **Alternatives considered:** Running Ollama in kind (exceeds the memory budget). A hosted model API (rejected in D21 for cost and data exposure).
 
+## D43. Small CLI mapper (supersedes D36 to D42, and the UI part of D21)
+
+**Decision:** The AI mapper is two CLI commands, with no UI, no database tables, no evaluation harness and no new metrics. `contribflow propose-connector <file.csv> --id <new_id>` sends the header and up to 10 sample rows to a local model through Ollama (structured JSON output, temperature 0). Code then checks that every proposed column exists and is used once, detects the date and amount formats itself, dry runs the draft through the real parser, prints the parse rate per field, and writes the draft to `proposals/<new_id>.yaml`. The human edits that file. `contribflow approve-connector proposals/<new_id>.yaml --approver <name>` validates it again, records the model, prompt version and approver in a comment header, and moves it into the connectors folder. Committing that file through a pull request is the approval record. Carried forward unchanged: CSV only (from D36), formats detected by code rather than the model (from D37), and the model on the host, never in the cluster (from D42).
+
+**Reasoning:** This keeps what makes the feature trustworthy (code verifies everything the model says, and a human signs off) and drops what made it a project. Git history gives a better audit trail than a custom table, for free.
+
+**Alternatives considered:** The full design in D36 to D42 (a UI, database storage and an eval suite; too much for the remaining scope).
+
 ## D44. Apply OS security updates when building the image
 
 **Decision:** The runtime stage of the Dockerfile runs `apt-get update && apt-get upgrade` before anything else, then deletes the package lists. The CI Diagnostics step is marked best effort, so it cannot add a second failure when the cluster was never created.
