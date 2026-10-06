@@ -23,6 +23,26 @@ like a production service: idempotent by design, observable, tested against a kn
 key, and deployed with Terraform and Helm. All data is synthetic, and everything runs locally
 at zero cloud cost.
 
+## Contents
+
+- [Screenshots](#screenshots)
+- [Architecture](#architecture)
+- [Idempotency and reconciliation](#idempotency-and-reconciliation)
+- [Testing against an answer key](#testing-against-an-answer-key)
+- [Features](#features)
+- [Design notes](#design-notes)
+- [Tech stack](#tech-stack)
+- [Project structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Configuration](#configuration)
+- [How to demo this](#how-to-demo-this)
+- [Quick start](#quick-start)
+- [Kubernetes with Terraform](#kubernetes-with-terraform)
+- [CI/CD](#cicd)
+- [API](#api)
+- [Metrics](#metrics)
+- [Known limitations](#known-limitations)
+
 ## Screenshots
 
 **Ingestion health** after loading every sample file plus one resubmission: files processed
